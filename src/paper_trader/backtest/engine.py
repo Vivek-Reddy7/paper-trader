@@ -11,11 +11,11 @@ while the pipeline is being built.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 from paper_trader.datasource.base import Bar
-from paper_trader.portfolio import Portfolio
+from paper_trader.portfolio import Fill, Portfolio
 from paper_trader.strategy.base import Signal, Strategy
 
 
@@ -33,6 +33,25 @@ class BacktestResult:
     final_value: float
     equity_curve: list[EquityPoint]
     n_trades: int
+    fills: list[Fill] = field(default_factory=list)
+    bars: list[Bar] = field(default_factory=list)
+
+    @property
+    def buy_and_hold_value(self) -> float:
+        """What you'd have by simply buying on day one and holding.
+
+        The only comparison that matters. A strategy that returns 25% in a
+        market that returned 40% lost you money in the way that counts.
+        """
+        if not self.bars:
+            return self.starting_cash
+        qty = int(self.starting_cash // self.bars[0].open)
+        leftover = self.starting_cash - qty * self.bars[0].open
+        return qty * self.bars[-1].close + leftover
+
+    @property
+    def buy_and_hold_return_pct(self) -> float:
+        return (self.buy_and_hold_value / self.starting_cash - 1.0) * 100.0
 
     @property
     def total_return_pct(self) -> float:
@@ -94,4 +113,6 @@ def run(
         final_value=equity[-1].value,
         equity_curve=equity,
         n_trades=len(portfolio.fills),
+        fills=list(portfolio.fills),
+        bars=list(bars),
     )

@@ -74,6 +74,13 @@ def cmd_backtest(args: argparse.Namespace) -> int:
     print(f"total return  {result.total_return_pct:>11.2f}%")
     print(f"max drawdown  {result.max_drawdown_pct:>11.2f}%")
     print(f"trades        {result.n_trades}")
+    print(f"buy & hold    {result.buy_and_hold_return_pct:>11.2f}%   <- the comparison that matters")
+
+    if args.plot:
+        from paper_trader.backtest import plot
+        written = plot.render(result, args.plot)
+        print(f"chart         {written}")
+
     return 0
 
 
@@ -95,6 +102,7 @@ def build_parser() -> argparse.ArgumentParser:
     bt.add_argument("--fast", type=int, default=20)
     bt.add_argument("--slow", type=int, default=50)
     bt.add_argument("--cash", type=float, default=100_000.0)
+    bt.add_argument("--plot", metavar="PATH", help="write a PNG chart to PATH")
     bt.set_defaults(func=cmd_backtest)
 
     return parser

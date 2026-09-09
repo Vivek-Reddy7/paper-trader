@@ -22,7 +22,17 @@ python -m paper_trader.cli ingest AAPL --start 2024-01-01 --end 2025-12-31
 
 # Backtest a 20/50 moving average crossover over it
 python -m paper_trader.cli backtest AAPL --start 2024-01-01 --end 2025-12-31
+
+# ...and draw it
+python -m paper_trader.cli backtest AAPL --start 2024-01-01 --end 2025-12-31 --plot chart.png
 ```
+
+![Backtest of INFY.NS](infy.png)
+
+Top panel is price with the actual fills marked. Bottom is strategy
+equity against buy-and-hold, which is the only comparison that means
+anything -- 24.53% looks good until you ask what the stock did, and it
+looks better once you find out it did 4.89%.
 
 NSE symbols work too, with the Yahoo suffix: `RELIANCE.NS`, `INFY.NS`.
 
