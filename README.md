@@ -80,18 +80,23 @@ position. The numbers looked plausible, which was the problem.
 
 ## Built with
 
-Written with **Claude Code** and **Cursor**, plus **GitHub Copilot** for
-inline completion.
+The initial scaffold -- interfaces, SQLite schema, backtest engine and
+the first 36 tests -- was written with **Claude Code**, working from a
+design I'd specified: separate ingest from backtest, idempotent writes,
+fill at next open, reconcile against a fill log.
 
-The division of labour that worked: I used the models heavily for
-structure, boilerplate and test scaffolding, and did the thinking myself
-on the parts where being wrong is invisible. The next-open fill rule, the
-idempotency requirement and the reconciliation check are all mine, and
-all three are places where a model happily generated code that ran fine
-and was subtly incorrect.
+Everything after the first commit is in the git history, and I'll note
+here what each tool was actually used for as I go rather than listing
+them up front.
 
-That's roughly my working rule now: fast on the parts where being wrong
-is loud, slow and manual on the parts where being wrong is quiet.
+The division of labour that's working so far: models are fast on
+structure, boilerplate and test scaffolding, and I stay slow and manual
+on the parts where being wrong is invisible in the output. The next-open
+fill rule and the reconciliation check are both cases where generated
+code ran fine and was subtly wrong until I went back over it.
+
+Rough rule: fast where being wrong is loud, slow where being wrong is
+quiet.
 
 ## Not done yet
 
