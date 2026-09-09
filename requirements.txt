@@ -1,0 +1,5 @@
+# Runtime
+yfinance>=0.2.40
+
+# Dev
+pytest>=8.0
