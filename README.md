@@ -36,8 +36,15 @@ looks better once you find out it did 4.89%.
 
 NSE symbols work too, with the Yahoo suffix: `RELIANCE.NS`, `INFY.NS`.
 
+With realistic costs, and an HTML report with the trade table:
+
 ```bash
-PYTHONPATH=src python -m pytest      # 36 tests
+python -m paper_trader.cli backtest INFY.NS --start 2024-01-01 --end 2025-12-31 \
+    --commission 0.03 --slippage 0.05 --report report.html
+```
+
+```bash
+PYTHONPATH=src python -m pytest      # 49 tests
 ```
 
 ## How it fits together
@@ -108,10 +115,39 @@ code ran fine and was subtly wrong until I went back over it.
 Rough rule: fast where being wrong is loud, slow where being wrong is
 quiet.
 
+## What transaction costs actually did
+
+I assumed costs would change the ranking between parameter sets. At
+Indian discount-broker rates they don't, and measuring was the only way
+to find that out.
+
+INFY.NS, 2024-01-01 to 2025-12-31, at 0.03% commission per side plus
+0.05% slippage:
+
+| windows | free    | with costs | trades |
+|---------|---------|------------|--------|
+| 5/20    | -9.99%  | -11.90%    | 29     |
+| 10/30   | 26.43%  | 25.07%     | 13     |
+| 20/50   | 24.53%  | 23.64%     | 9      |
+| 50/200  | -3.75%  | -3.83%     | 1      |
+
+Costs scale cleanly with turnover, roughly 0.07 percentage points per
+trade, and the ordering is unchanged. This strategy simply doesn't trade
+often enough for discount-broker fees to decide anything.
+
+Push the rates up to 0.3% commission and 0.2% slippage, which is a
+full-service broker or an illiquid stock, and it does matter: 5/20 goes
+from -9.99% to -21.86%, and 20/50 overtakes 10/30. The ranking flips.
+So cost sensitivity is a function of turnover, and which parameter set
+looks best depends on the fee regime you assume.
+
+Commission is recorded on the `Fill` rather than deducted straight from
+cash, so `reconcile()` still balances. There's a test that fails if you
+take the shortcut.
+
 ## Not done yet
 
 - Exchange calendar, so holiday gaps stop being reported as suspicious
-- Transaction costs and slippage, currently assumed zero
 - Position sizing beyond all-in / all-out on one symbol
 - A broker data source behind the same `DataSource` interface
 - Sharpe and per-trade statistics in the report

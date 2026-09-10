@@ -18,6 +18,7 @@ import sys
 from datetime import date, datetime
 
 from paper_trader.backtest import engine
+from paper_trader.costs import CostModel
 from paper_trader.datasource.yfinance_source import YFinanceSource
 from paper_trader.storage.store import BarStore
 from paper_trader.strategy.sma_crossover import SmaCrossover
@@ -64,7 +65,8 @@ def cmd_backtest(args: argparse.Namespace) -> int:
         return 1
 
     strategy = SmaCrossover(fast=args.fast, slow=args.slow)
-    result = engine.run(bars, strategy, starting_cash=args.cash)
+    costs = CostModel(commission_pct=args.commission, slippage_pct=args.slippage)
+    result = engine.run(bars, strategy, starting_cash=args.cash, costs=costs)
 
     print(f"strategy      {result.strategy}")
     print(f"symbol        {result.symbol}")
@@ -75,6 +77,9 @@ def cmd_backtest(args: argparse.Namespace) -> int:
     print(f"max drawdown  {result.max_drawdown_pct:>11.2f}%")
     print(f"trades        {result.n_trades}")
     print(f"buy & hold    {result.buy_and_hold_return_pct:>11.2f}%   <- the comparison that matters")
+    if not costs.is_free:
+        print(f"commission    {result.total_commission:>12,.2f}   "
+              f"({args.commission}% per side, {args.slippage}% slippage)")
 
     if args.plot:
         from paper_trader.backtest import plot
@@ -107,6 +112,10 @@ def build_parser() -> argparse.ArgumentParser:
     bt.add_argument("--fast", type=int, default=20)
     bt.add_argument("--slow", type=int, default=50)
     bt.add_argument("--cash", type=float, default=100_000.0)
+    bt.add_argument("--commission", type=float, default=0.0,
+                    metavar="PCT", help="brokerage per side, e.g. 0.03 (default: 0, i.e. free)")
+    bt.add_argument("--slippage", type=float, default=0.0,
+                    metavar="PCT", help="adverse fill percentage, e.g. 0.05 (default: 0)")
     bt.add_argument("--plot", metavar="PATH", help="write a PNG chart to PATH")
     bt.add_argument("--report", metavar="PATH", help="write a self-contained HTML report to PATH")
     bt.set_defaults(func=cmd_backtest)

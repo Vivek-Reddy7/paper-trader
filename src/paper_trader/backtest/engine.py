@@ -14,6 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 
+from paper_trader.costs import FREE, CostModel
 from paper_trader.datasource.base import Bar
 from paper_trader.portfolio import Fill, Portfolio
 from paper_trader.strategy.base import Signal, Strategy
@@ -35,6 +36,7 @@ class BacktestResult:
     n_trades: int
     fills: list[Fill] = field(default_factory=list)
     bars: list[Bar] = field(default_factory=list)
+    total_commission: float = 0.0
 
     @property
     def buy_and_hold_value(self) -> float:
@@ -74,6 +76,7 @@ def run(
     bars: list[Bar],
     strategy: Strategy,
     starting_cash: float = 100_000.0,
+    costs: CostModel = FREE,
 ) -> BacktestResult:
     if not bars:
         raise ValueError("no bars to backtest")
@@ -82,14 +85,14 @@ def run(
     if any(b.symbol != symbol for b in bars):
         raise ValueError("run() handles one symbol at a time")
 
-    portfolio = Portfolio(starting_cash=starting_cash)
+    portfolio = Portfolio(starting_cash=starting_cash, costs=costs)
     equity: list[EquityPoint] = []
     pending: Signal | None = None
 
     for i, bar in enumerate(bars):
         # Execute whatever last bar's signal asked for, at today's open.
         if pending is Signal.BUY and not portfolio.positions:
-            qty = int(portfolio.cash // bar.open)
+            qty = portfolio.max_affordable(bar.open)
             if qty > 0:
                 portfolio.buy(bar.day, symbol, qty, bar.open)
         elif pending is Signal.SELL and portfolio.positions.get(symbol, 0) > 0:
@@ -115,4 +118,5 @@ def run(
         n_trades=len(portfolio.fills),
         fills=list(portfolio.fills),
         bars=list(bars),
+        total_commission=portfolio.total_commission,
     )
