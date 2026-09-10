@@ -14,3 +14,7 @@ data/
 .vscode/
 .idea/
 .DS_Store
+
+# Generated reports and charts
+report.html
+chart-*.png

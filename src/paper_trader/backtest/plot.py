@@ -22,7 +22,12 @@ from pathlib import Path
 from paper_trader.backtest.engine import BacktestResult
 
 
-def render(result: BacktestResult, out_path: str | Path) -> Path:
+def build_figure(result: BacktestResult):
+    """Build and return the matplotlib Figure. Caller decides where it goes.
+
+    Kept separate from `render` so the HTML report can write the same
+    figure into an in-memory buffer instead of a file.
+    """
     try:
         import matplotlib
         matplotlib.use("Agg")  # no display needed
@@ -105,8 +110,24 @@ def render(result: BacktestResult, out_path: str | Path) -> Path:
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
 
     fig.tight_layout()
+    return fig
 
+
+def render(result: BacktestResult, out_path: str | Path) -> Path:
+    """Render the chart to a PNG file."""
+    import matplotlib.pyplot as plt
+
+    fig = build_figure(result)
     out = Path(out_path)
     fig.savefig(out, dpi=140, facecolor="white")
     plt.close(fig)
     return out
+
+
+def render_to_buffer(result: BacktestResult, buffer) -> None:
+    """Render the chart into a file-like object, e.g. io.BytesIO."""
+    import matplotlib.pyplot as plt
+
+    fig = build_figure(result)
+    fig.savefig(buffer, format="png", dpi=140, facecolor="white")
+    plt.close(fig)
