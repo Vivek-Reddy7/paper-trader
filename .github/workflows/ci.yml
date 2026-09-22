@@ -1,0 +1,47 @@
+# CI. Red blocks merge -- a suite that gates nothing is a suite people stop
+# reading.
+#
+# No network calls: every test exercises the SQLite store, the backtest
+# engine, cost modelling and strategy logic directly, never yfinance. That is
+# a property of the test suite (see datasource/base.py's DataSource interface
+# -- fetching is behind a boundary specifically so backtesting doesn't need
+# the network), not an accident of what happened to get covered, so CI can
+# run fully offline: no flake from a rate-limited upstream, no test that
+# passes only when Yahoo Finance is having a good day.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Tests
+        run: PYTHONPATH=src python -m pytest -q
+
+      # A new advisory against a transitive dependency can land overnight
+      # with no fix available, so this reports rather than blocks.
+      - name: Dependency vulnerabilities
+        continue-on-error: true
+        run: |
+          pip install -q pip-audit
+          pip-audit --strict --desc
